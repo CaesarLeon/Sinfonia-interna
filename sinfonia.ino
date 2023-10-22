@@ -1,0 +1,333 @@
+#include <FastLED.h>                           //Librería
+#define CHIPSET WS2812B                        //Tipos de leds
+#define LED_PIN 3                              //Pin del Arduino que conecta a los leds
+#define COLOR_ORDER GRB                        //Tipo de código de color
+#define BRIGHTNESS 20                          //Brillo
+#define num_x 30
+#define num_y 19
+#define num_oscillators 10
+
+const int sensorPin = A0;                      //Pin del Arduino que conecta al sensor
+int sensorValue;                               //Variable que almacena el valor que detecta el sensor
+int previousSensorValue = 0;
+
+#define NUM_LEDS (num_x * num_y)
+CRGB leds[num_x * num_y];
+#define LAST_VISIBLE_LED 503
+uint16_t XY (uint16_t x, uint16_t y) {
+  if ( (x >= num_x) || (y >= num_y) ) {
+    return (LAST_VISIBLE_LED + 1);
+  }
+
+  const uint16_t XYTable[] = {
+     0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
+    59,  58,  57,  56,  55,  54,  53,  52,  51,  50,  49,  48,  47,  46,  45,  44,  43,  42,  41,  40,  39,  38,  37,  36,  35,  34,  33,  32,  31,  30,
+    60,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,
+   117, 116, 115, 114, 113, 112, 111, 505, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100,  99,  98,  97,  96, 504,  95,  94,  93,  92,  91,  90,
+   118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147,
+   176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 506, 161, 160, 159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148,
+   177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 507, 508, 509, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203,
+   518, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 517, 516, 515, 514, 513, 512, 511, 213, 212, 211, 210, 209, 208, 207, 206, 205, 204, 510,
+   519, 520, 225, 226, 227, 228, 229, 230, 231, 232, 233, 521, 522, 523, 524, 234, 525, 526, 527, 528, 235, 236, 237, 238, 239, 240, 241, 242, 529, 530,
+   544, 543, 542, 258, 257, 256, 255, 254, 253, 252, 541, 540, 539, 538, 251, 250, 249, 537, 536, 535, 534, 248, 247, 246, 245, 244, 243, 533, 532, 531,
+   545, 546, 259, 260, 261, 262, 263, 264, 265, 266, 267, 547, 548, 549, 550, 268, 551, 552, 553, 269, 270, 271, 272, 273, 274, 275, 276, 277, 554, 555,
+   563, 299, 298, 297, 296, 295, 294, 293, 292, 291, 290, 289, 562, 561, 560, 559, 558, 557, 288, 287, 286, 285, 284, 283, 282, 281, 280, 279, 278, 556,
+   300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 564, 565, 566, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326,
+   355, 354, 353, 352, 351, 350, 349, 348, 347, 346, 345, 344, 343, 342, 341, 567, 340, 339, 338, 337, 336, 335, 334, 333, 332, 331, 330, 329, 328, 327,
+   356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385,
+   413, 412, 411, 410, 409, 408, 407, 569, 406, 405, 404, 403, 402, 401, 400, 399, 398, 397, 396, 395, 394, 393, 392, 568, 391, 390, 389, 388, 387, 386,
+   414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443,
+   473, 472, 471, 470, 469, 468, 467, 466, 465, 464, 463, 462, 461, 460, 459, 458, 457, 456, 455, 454, 453, 452, 451, 450, 449, 448, 447, 446, 445, 444,
+   474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503
+  };
+
+  uint16_t i = (y * num_x) + x;
+  uint16_t j = XYTable[i];
+  return j;
+}
+
+void calculate_oscillators(oscillators &timings) {
+
+  double runtime = millis() * timings.master_speed;  
+
+  for (int i = 0; i < num_oscillators; i++) {
+    
+    move.linear[i]      = (runtime + timings.offset[i]) * timings.ratio[i];     
+    
+    move.radial[i]      = fmodf(move.linear[i], 2 * PI);                       
+    
+    move.directional[i] = sinf(move.radial[i]);                                 
+    
+    move.noise_angle[i] = PI * (1 + pnoise(move.linear[i], 0, 0));              
+    
+  }
+
+}
+
+float polar_theta[num_x][num_y];        
+float distance[num_x][num_y];           
+
+unsigned long a, b, c;                  
+
+unsigned long lastBeatTime = 0;
+int beatThreshold = 10;
+int bpm = 0;
+
+void setup() {
+  FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
+  FastLED.setBrightness(BRIGHTNESS);
+  Serial.begin(9600);
+  render_polar_lookup_table((num_x / 2) - 0.5, (num_y / 2) - 0.5);
+}
+
+float render_value(render_parameters &animation) {
+
+  float newx = (animation.offset_x + animation.center_x - (cosf(animation.angle) * animation.dist)) * animation.scale_x;
+  float newy = (animation.offset_y + animation.center_y - (sinf(animation.angle) * animation.dist)) * animation.scale_y;
+  float newz = (animation.offset_z + animation.z) * animation.scale_z;
+
+  float raw_noise_field_value = pnoise(newx, newy, newz);
+
+  if (raw_noise_field_value < animation.low_limit)  raw_noise_field_value =  animation.low_limit;
+  if (raw_noise_field_value > animation.high_limit) raw_noise_field_value = animation.high_limit;
+
+  float scaled_noise_value = map_float(raw_noise_field_value, animation.low_limit, animation.high_limit, 0, 255);
+
+  return scaled_noise_value;
+}
+
+void render_polar_lookup_table(float cx, float cy) {
+
+  for (int xx = 0; xx < num_x; xx++) {
+    for (int yy = 0; yy < num_y; yy++) {
+
+      float dx = xx - cx;
+      float dy = yy - cy;
+
+      distance[xx][yy]    = hypotf(dx, dy);
+      polar_theta[xx][yy] = atan2f(dy, dx); 
+    }
+  }
+}
+
+float map_float(float x, float in_min, float in_max, float out_min, float out_max) { 
+  
+  float result = (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
+  if (result < out_min) result = out_min;
+  if( result > out_max) result = out_max;
+
+  return result; 
+}
+
+rgb rgb_sanity_check(rgb &pixel) {
+
+      if (pixel.red   > 255)   pixel.red = 255;
+      if (pixel.green > 255) pixel.green = 255;
+      if (pixel.blue  > 255)  pixel.blue = 255;
+
+      return pixel;
+}
+
+uint16_t xy(uint8_t x, uint8_t y) {
+  if (y & 1)                             
+    return (y + 1) * num_x - 1 - x;      
+  else
+    return y * num_x + x;                
+}                                        
+
+void report_performance() {
+  
+  float calc  = b - a;                         // rendering time
+  float push  = c - b;                         // time to initialize led update
+  float total = c - a;                         // time per frame
+  int fps  = 1000000 / total;                // frames per second
+  int kpps = (fps * num_x * num_y) / 1000;   // kilopixel per second
+}
+
+void Caleido1() {
+
+a = micros();                   // for time measurement in report_performance()
+
+  timings.master_speed = 0.003;    // speed ratios for the oscillators
+  timings.ratio[0] = 0.02;         // higher values = faster transitions
+  timings.ratio[1] = 0.03;
+  timings.ratio[2] = 0.04;
+  timings.ratio[3] = 0.05;
+  timings.ratio[4] = 0.6;
+  timings.offset[0] = 0;
+  timings.offset[1] = 100;
+  timings.offset[2] = 200;
+  timings.offset[3] = 300;
+  timings.offset[4] = 400;
+  
+  calculate_oscillators(timings);     // get linear movers and oscillators going
+
+  for (int x = 0; x < num_x; x++) {
+    for (int y = 0; y < num_y; y++) {
+  
+      // describe and render animation layers
+      animation.dist       = distance[x][y] * (2 + move.directional[0]) / 3;
+      animation.angle      = 3 * polar_theta[x][y] + 3 * move.noise_angle[0] + move.radial[4];
+      animation.scale_x    = 0.1;
+      animation.scale_y    = 0.1;
+      animation.scale_z    = 0.1;
+      animation.offset_y   = 2 * move.linear[0];
+      animation.offset_x   = 0;
+      animation.offset_z   = 0;
+      animation.z          = move.linear[0];
+      float show1          = render_value(animation);
+
+      animation.dist       = distance[x][y] * (2 + move.directional[1]) / 3;
+      animation.angle      = 4 * polar_theta[x][y] + 3 * move.noise_angle[1] + move.radial[4];
+      animation.offset_x   = 2 * move.linear[1];
+      animation.z          = move.linear[1];
+      float show2          = render_value(animation);
+
+      animation.dist       = distance[x][y] * (2 + move.directional[2]) / 3;
+      animation.angle      = 5 * polar_theta[x][y] + 3 * move.noise_angle[2] + move.radial[4];
+      animation.offset_y   = 2 * move.linear[2];
+      animation.z          = move.linear[2];
+      float show3          = render_value(animation);
+
+      animation.dist       = distance[x][y] * (2 + move.directional[3]) / 3;
+      animation.angle      = 4 * polar_theta[x][y] + 3 * move.noise_angle[3] + move.radial[4];
+      animation.offset_x   = 2 * move.linear[3];
+      animation.z          = move.linear[3];
+      float show4          = render_value(animation);
+      
+      // colormapping
+      pixel.red   = show1;
+      pixel.green = show3 * distance[x][y] / 10;
+      pixel.blue  = (show2 + show4) / 2;
+
+      pixel = rgb_sanity_check(pixel);
+
+      leds[xy(x, y)] = CRGB(pixel.red, pixel.green, pixel.blue);
+    }
+  }
+  b = micros(); // for time measurement in report_performance()
+  FastLED.show();
+  c = micros(); // for time measurement in report_performance()
+  EVERY_N_MILLIS(500) report_performance();   // check serial monitor for report
+
+}
+
+struct render_parameters {
+
+  float center_x = (num_x / 2) - 0.5;   // Centro de la matriz
+  float center_y = (num_y / 2) - 0.5;
+  float dist, angle;                
+  float scale_x = 0.1;                  // Valores más pequeños = zoom in
+  float scale_y = 0.1;
+  float scale_z = 0.1;       
+  float offset_x, offset_y, offset_z;     
+  float z;  
+  float low_limit  = 0;                 // Aumentar contraste al aumentar el punto negro
+  float high_limit = 1;                                            
+};
+
+render_parameters animation;     // all animation parameters in one place
+
+struct oscillators {
+
+  float master_speed;            // Velocidad global de transiciones
+  float offset[num_oscillators]; // Los osciladores pueden cambiar
+  float ratio[num_oscillators];  // Velocidad de cada oscilador                                  
+};
+
+oscillators timings;             // all speed settings in one place
+
+struct modulators {  
+
+  float linear[num_oscillators];        // returns 0 to FLT_MAX
+  float radial[num_oscillators];        // returns 0 to 2*PI
+  float directional[num_oscillators];   // returns -1 to 1
+  float noise_angle[num_oscillators];   // returns 0 to 2*PI        
+};
+
+modulators move;                 // all oscillator based movers and shifters at one place
+
+struct rgb {
+  float red, green, blue;
+};
+
+rgb pixel;
+
+static const byte p[] = {   151,160,137,91,90, 15,131, 13,201,95,96,
+53,194,233, 7,225,140,36,103,30,69,142, 8,99,37,240,21,10,23,190, 6,
+148,247,120,234,75, 0,26,197,62,94,252,219,203,117, 35,11,32,57,177,
+33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,
+48,27,166, 77,146,158,231,83,111,229,122, 60,211,133,230,220,105,92,
+41,55,46,245,40,244,102,143,54,65,25,63,161, 1,216,80,73,209,76,132,
+187,208, 89, 18,169,200,196,135,130,116,188,159, 86,164,100,109,198,
+173,186, 3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,
+212,207,206, 59,227, 47,16,58,17,182,189, 28,42,223,183,170,213,119,
+248,152,2,44,154,163,70,221,153,101,155,167,43,172, 9,129,22,39,253,
+19,98,108,110,79,113,224,232,178,185,112,104,218,246, 97,228,251,34,
+242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,
+49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,
+150,254,138,236,205, 93,222,114, 67,29,24, 72,243,141,128,195,78,66,
+215,61,156,180
+};
+
+float fade(float t){ return t * t * t * (t * (t * 6 - 15) + 10); }
+float lerp(float t, float a, float b){ return a + t * (b - a); }
+float grad(int hash, float x, float y, float z)
+{
+int    h = hash & 15;          /* CONVERT LO 4 BITS OF HASH CODE */
+float  u = h < 8 ? x : y,      /* INTO 12 GRADIENT DIRECTIONS.   */
+          v = h < 4 ? y : h==12||h==14 ? x : z;
+return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
+}
+
+#define P(x) p[(x) & 255]
+
+float pnoise(float x, float y, float z) {
+  
+int   X = (int)floorf(x) & 255,             /* FIND UNIT CUBE THAT */
+      Y = (int)floorf(y) & 255,             /* CONTAINS POINT.     */
+      Z = (int)floorf(z) & 255;
+x -= floorf(x);                             /* FIND RELATIVE X,Y,Z */
+y -= floorf(y);                             /* OF POINT IN CUBE.   */
+z -= floorf(z);
+float  u = fade(x),                         /* COMPUTE FADE CURVES */
+       v = fade(y),                         /* FOR EACH OF X,Y,Z.  */
+       w = fade(z);
+int  A = P(X)+Y, 
+     AA = P(A)+Z, 
+     AB = P(A+1)+Z,                         /* HASH COORDINATES OF */
+     B = P(X+1)+Y, 
+     BA = P(B)+Z, 
+     BB = P(B+1)+Z;                         /* THE 8 CUBE CORNERS, */
+
+return lerp(w,lerp(v,lerp(u, grad(P(AA  ), x, y, z),    /* AND ADD */
+                          grad(P(BA  ), x-1, y, z)),    /* BLENDED */
+              lerp(u, grad(P(AB  ), x, y-1, z),         /* RESULTS */
+                   grad(P(BB  ), x-1, y-1, z))),        /* FROM  8 */
+            lerp(v, lerp(u, grad(P(AA+1), x, y, z-1),   /* CORNERS */
+                 grad(P(BA+1), x-1, y, z-1)),           /* OF CUBE */
+              lerp(u, grad(P(AB+1), x, y-1, z-1),
+                   grad(P(BB+1), x-1, y-1, z-1))));
+}
+
+void loop() {
+  delay(100);
+  Caleido1();
+
+  sensorValue = analogRead(sensorPin);
+  
+  if (abs(sensorValue - previousSensorValue) > 20) {          // Cambia la animación solo si la señal del sensor ha cambiado lo suficiente
+    previousSensorValue = sensorValue;
+    int hueOffset = map(sensorValue, 0, 1023, 0, 255);
+    int noiseOffset = millis() / 1500;
+    
+    for (int i = 0; i < NUM_LEDS; i++) {
+      uint8_t hue = (i * 255 / NUM_LEDS) + hueOffset;
+      uint8_t saturation = 255;
+      uint8_t noise = inoise8(i * 20, noiseOffset);
+      leds[i] = CHSV(hue + noise, saturation, 255);
+    }
+    
+    FastLED.show();
+  }
+}
